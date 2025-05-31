@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashCard de Fisiologia</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 700px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .theme-selection button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+        .theme-selection button:hover {
+            background-color: #2980b9;
+        }
+        .question-area {
+            margin-top: 30px;
+            display: none; /* Hidden until a theme is selected */
+        }
+        .question-text {
+            font-size: 1.6em;
+            margin-bottom: 25px;
+            min-height: 80px; /* Ensure space for longer questions */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 10px;
+            background-color: #ecf0f1;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            line-height: 1.4;
+        }
+        .answer-text {
+            font-size: 1.1em;
+            color: #555;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            padding: 10px;
+            border: 1px dashed #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            text-align: left;
+            display: none; /* Hidden until "Mostrar Resposta" is clicked */
+        }
+        .actions button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .actions button.nao-sabia { background-color: #e74c3c; }
+        .actions button.mais-ou-menos { background-color: #f1c40f; }
+        .actions button.sabia { background-color: #2ecc71; }
+        .actions button.show-answer { background-color: #9b59b6; }
+
+        .actions button:hover {
+            opacity: 0.9;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            height: 10px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            width: 0%;
+            background-color: #27ae60;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        .summary-area {
+            display: none;
+            margin-top: 30px;
+            text-align: left;
+        }
+        .summary-area table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .summary-area th, .summary-area td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .summary-area th {
+            background-color: #f2f2f2;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>FlashCard de Fisiologia</h1>
+
+        <div class="theme-selection" id="themeSelection">
+            <h2>Escolha o Tema:</h2>
+            <button onclick="selectTheme('urinario')">Aparelho Urinário</button>
+            <button onclick="selectTheme('respiratorio')">Sistema Respiratório</button>
+        </div>
+
+        <div class="question-area" id="questionArea">
+            <div class="question-text" id="questionText"></div>
+            <div class="answer-text" id="answerText"></div>
+            <div class="actions">
+                <button class="show-answer" onclick="showAnswer()">Mostrar Resposta</button>
+                <button class="sabia" onclick="markAnswer('sabia')">Sabia</button>
+                <button class="mais-ou-menos" onclick="markAnswer('mais-ou-menos')">+/-</button>
+                <button class="nao-sabia" onclick="markAnswer('nao-sabia')">Não Sabia</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="summary-area" id="summaryArea">
+            <h2>Resultados do Estudo</h2>
+            <div id="summaryContent"></div>
+            <button onclick="resetFlashcard()">Estudar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        let questions = {
+            urinario: [
+                {
+                    q: "Os mecanismos envolvidos na formação da urina são a filtração glomerular, reabsorção tubular e a secreção tubular.",
+                    a: "Verdadeiro. Estes são os três processos renais fundamentais para a formação da urina."
+                },
+                {
+                    q: "A inulina é substância exógena cujo valor de depuração é uma boa estimativa da Taxa de Filtração Glomerular porque o seu processamento renal envolve apenas a filtração glomerular.",
+                    a: "Verdadeiro. A inulina é filtrada livremente pelo glomérulo, não é reabsorvida nem secretada pelos túbulos, tornando sua depuração igual à TFG."
+                },
+                {
+                    q: "A depuração plasmática define a quantidade de plasma que tem que ser completamente depurado por minuto.",
+                    a: "Verdadeiro. A depuração (clearance) é um volume virtual de plasma que é completamente 'limpo' de uma substância por unidade de tempo."
+                },
+                {
+                    q: "A taxa de filtração glomerular define o volume filtrado formado por minuto, sendo mais ou menos constante, igual a 125 ml/min.",
+                    a: "Verdadeiro. A TFG é o volume de filtrado glomerular formado por minuto, e 125 ml/min é o valor médio em adultos saudáveis."
+                },
+                {
+                    q: "O valor de depuração é um valor virtual porque o volume de plasma realmente processado pelos rins é normalmente menos que o valor de depuração.",
+                    a: "Falso. O valor de depuração é virtual porque representa o volume de plasma que *teria* de ser completamente depurado para atingir a taxa de excreção observada. O volume de plasma real que flui pelos rins é muito maior."
+                },
+                {
+                    q: "A depuração da inulina é constante e independente da sua concentração plasmática.",
+                    a: "Verdadeiro. Uma vez que a inulina é apenas filtrada, a taxa de depuração é constante, independentemente de sua concentração no plasma, desde que a TFG permaneça a mesma."
+                },
+                {
+                    q: "A depuração da glicose é sempre inferior à da inulina.",
+                    a: "Verdadeiro. A glicose é filtrada e depois completamente reabsorvida (em condições normais) no túbulo contorcido proximal, de modo que sua depuração é zero. A inulina é apenas filtrada, então sua depuração é maior que zero."
+                },
+                {
+                    q: "O transporte renal máximo para uma substância é definido como o valor máximo da taxa de filtração glomerular.",
+                    a: "Falso. O transporte renal máximo (Tm) refere-se à capacidade máxima de reabsorção ou secreção de uma substância pelos túbulos renais, não à TFG."
+                },
+                {
+                    q: "A depuração da inulina é constante e independente da sua concentração plasmática.",
+                    a: "Verdadeiro. (Repetida para reforço) A inulina é filtrada livremente e não é reabsorvida nem secretada, então sua depuração é uma medida direta da TFG e não depende da sua concentração plasmática."
+                },
+                {
+                    q: "A reação de Jaffé permite determinar a concentração de inulina, necessária ao cálculo da taxa de filtração glomerular.",
+                    a: "Falso. A reação de Jaffé é usada para determinar a concentração de creatinina, não de inulina. A inulina é determinada por outros métodos analíticos."
+                },
+                {
+                    q: "A depuração de inulina permite estimar a taxa de filtração glomerular.",
+                    a: "Verdadeiro. A inulina é considerada o padrão-ouro para estimar a TFG devido ao seu comportamento ideal no rim (apenas filtração)."
+                },
+                {
+                    q: "O transporte renal máximo para uma substância é definido como o valor máximo da taxa de filtração glomerular.",
+                    a: "Falso. (Repetida para reforço) O transporte máximo (Tm) é a taxa máxima na qual uma substância pode ser transportada (reabsorvida ou secretada) pelos túbulos renais quando os transportadores estão saturados."
+                },
+                {
+                    q: "A depuração da glicose é dependente da sua concentração plasmática.",
+                    a: "Verdadeiro. Abaixo do limiar renal, a depuração da glicose é zero. Acima do limiar, quando a glicose aparece na urina, sua depuração aumenta com a concentração plasmática até o Tm ser atingido."
+                },
+                {
+                    q: "Excreção e eliminação são sinônimos.",
+                    a: "Falso. Excreção é a remoção de resíduos metabólicos do corpo (ex: urina). Eliminação é um termo mais amplo que inclui a remoção de qualquer substância do corpo, inclusive fezes, que não são produtos metabólicos."
+                },
+                {
+                    q: "Em termos evolutivos a opção de uma espécie por uma das formas de excreção de azoto dependeu da pressão de seleção entre poupar água ou gastar energia.",
+                    a: "Verdadeiro. A excreção de amônia (alta toxicidade, gasta pouca energia, mas requer muita água), ureia (menor toxicidade, gasta mais energia, mas poupa água) ou ácido úrico (baixa toxicidade, gasta mais energia, mas poupa muita água) é uma adaptação evolutiva."
+                },
+                {
+                    q: "O rim tem um importante papel na neoglucogênese. Uma secção frontal de rim mostra 3 regiões (do exterior para o interior): medula, córtex e a pélvis renal.",
+                    a: "Falso. O rim tem um importante papel na neoglucogênese, mas a ordem correta das regiões (do exterior para o interior) é córtex, medula e pélvis renal."
+                },
+                {
+                    q: "O glomérulo é constituído pelo corpúsculo renal e cápsula de Bowman.",
+                    a: "Falso. O corpúsculo renal é constituído pelo glomérulo (capilares glomerulares) e pela cápsula de Bowman. O glomérulo é uma parte do corpúsculo renal."
+                },
+                {
+                    q: "Os capilares peritubulares envolvem somente o túbulo contornado proximal.",
+                    a: "Falso. Os capilares peritubulares envolvem todos os segmentos do túbulo renal (contornado proximal, alça de Henle e túbulo contornado distal) e são essenciais para a reabsorção e secreção tubular."
+                },
+                {
+                    q: "Os ductos coletores são permeáveis à água.",
+                    a: "Verdadeiro. A permeabilidade à água dos ductos coletores é regulada principalmente pela vasopressina (ADH), que permite a reabsorção de água e a concentração da urina."
+                },
+                {
+                    q: "Uma substância que promove a formação de urina diluída tem o nome de diurético.",
+                    a: "Verdadeiro. Diuréticos são substâncias que aumentam a produção de urina, muitas vezes inibindo a reabsorção de água e/ou solutos, resultando em urina mais diluída."
+                },
+                {
+                    q: "O conceito depuração renal parte do princípio do equilíbrio de massa.",
+                    a: "Verdadeiro. O conceito de depuração renal é baseado no princípio do equilíbrio de massa, que estabelece que a quantidade de uma substância que entra deve ser igual à quantidade que sai, mais a quantidade metabolizada ou armazenada."
+                },
+                {
+                    q: "A carga tubular de uma substância é a quantidade total dessa substância, por unidade de tempo, que é filtrada.",
+                    a: "Verdadeiro. A carga tubular filtrada é o produto da concentração plasmática da substância e da taxa de filtração glomerular (TFG)."
+                },
+                {
+                    q: "A concentração plasmática da glicose é normalmente mais elevada do que a do filtrado.",
+                    a: "Falso. A glicose é filtrada livremente pelo glomérulo, o que significa que sua concentração no filtrado glomerular é essencialmente a mesma que sua concentração no plasma (a menos que esteja ligada a proteínas, o que não é o caso da glicose)."
+                },
+                {
+                    q: "A creatinina é uma substância endógena que sofre exclusivamente o processo renal de filtração, razão pela qual o seu valor de depuração renal é usado para estimar o fluxo plasmático renal.",
+                    a: "Falso. A creatinina é filtrada e, em pequena quantidade, secretada pelos túbulos. Por isso, a depuração da creatinina superestima ligeiramente a TFG, mas é usada como uma estimativa clínica. O PAH (ácido p-amino-hipúrico) é usado para estimar o fluxo plasmático renal, pois é filtrado e secretado quase que completamente."
+                },
+                {
+                    q: "As células Justaglomerulares fazem parte da mácula densa.",
+                    a: "Falso. As células Justaglomerulares (células granulares) estão localizadas na parede da arteríola aferente. A mácula densa é uma parte do túbulo contorcido distal. Juntas, elas formam o aparelho justaglomerular."
+                },
+                {
+                    q: "As células Justaglomerulares são responsáveis pela libertação de renina.",
+                    a: "Verdadeiro. As células justaglomerulares secretam renina em resposta à diminuição da pressão arterial, diminuição do volume sanguíneo ou diminuição da concentração de sódio na mácula densa."
+                },
+                {
+                    q: "A angiotensina II, ao atuar sobre o Complexo Justaglomerular (CJ), vai mediar a libertação de aldosterona.",
+                    a: "Falso. A angiotensina II atua diretamente sobre o córtex adrenal para estimular a libertação de aldosterona, e não diretamente sobre o complexo justaglomerular para mediar a libertação de aldosterona. A angiotensina II é formada pela ação da renina (liberada pelo CJ)."
+                },
+                {
+                    q: "Uma alça de Henle comprida está relacionada com uma maior capacidade de concentração de urina.",
+                    a: "Verdadeiro. Alças de Henle mais longas permitem um gradiente osmótico medular mais acentuado, o que é essencial para a capacidade do rim de concentrar a urina."
+                },
+                {
+                    q: "A lise excessiva de eritrócitos resulta numa contagem de eritrócitos diminuída, designada eritrocitose.",
+                    a: "Falso. A lise excessiva de eritrócitos (hemólise) resulta numa contagem de eritrócitos diminuída, mas a designação é anemia hemolítica. Eritrocitose é o aumento do número de eritrócitos."
+                },
+                {
+                    q: "O aumento do volume globular indica policitemia, como a que é provocada por deficiência de ferro.",
+                    a: "Falso. O aumento do volume globular (hematócrito) indica policitemia. No entanto, a deficiência de ferro geralmente causa anemia microcítica, onde os eritrócitos são menores (menor volume globular médio), não policitemia."
+                },
+                {
+                    q: "As globulinas são o grupo mais importante das proteínas plasmáticas.",
+                    a: "Falso. As albuminas são o grupo mais abundante e mais importante das proteínas plasmáticas, contribuindo significativamente para a pressão oncótica do sangue. As globulinas também são importantes, mas as albuminas são mais numerosas."
+                },
+                {
+                    q: "Soro e plasma são nomes diferentes para a mesma substância.",
+                    a: "Falso. Plasma é o componente líquido do sangue com todos os fatores de coagulação. Soro é o plasma menos os fatores de coagulação (ou seja, o líquido que resta após o sangue coagular)."
+                },
+                {
+                    q: "Proteínas plasmáticas não são filtradas, contribuindo para manter a pressão oncótica do sangue.",
+                    a: "Verdadeiro. As proteínas plasmáticas são geralmente muito grandes para serem filtradas pelo glomérulo e permanecem no sangue, criando a pressão oncótica (ou coloidosmótica) que ajuda a reabsorver o líquido de volta para os capilares."
+                },
+                {
+                    q: "O limiar plasmático de uma substância é a concentração mínima que haja reabsorção ou secreção.",
+                    a: "Falso. O limiar plasmático de uma substância é a concentração plasmática a partir da qual essa substância começa a aparecer na urina (quando a reabsorção máxima é atingida e excedida, como na glicose), ou seja, é o ponto em que a capacidade de transporte renal é saturada."
+                },
+                {
+                    q: "A depuração não é um valor real, mas sim um valor de equivalência porque os rins não depuram totalmente de plasma.",
+                    a: "Verdadeiro. A depuração é um valor virtual ou de equivalência. Ela representa o volume de plasma que seria completamente 'limpo' de uma substância em um dado tempo, mas o volume real de plasma que passa pelos rins é muito maior e apenas uma fração dele é depurada."
+                }
+            ],
+            respiratorio: [
+                {
+                    q: "A pressão intrapleural é sempre negativa e a pressão transpulmonar é sempre positiva.",
+                    a: "Verdadeiro (em condições fisiológicas normais). A pressão intrapleural é negativa para manter os pulmões expandidos, e a pressão transpulmonar (Palv - Pip) é positiva para distender os pulmões."
+                },
+                {
+                    q: "O fluxo de gás é inversamente proporcional à resistência (R). com a maior R a ser registada nos bronquíolos de tamanho médio.",
+                    a: "Verdadeiro (primeira parte). O fluxo de gás é inversamente proporcional à resistência. A maior resistência é, de fato, registrada nos brônquios segmentares e bronquíolos maiores (tamanho médio), e não nos bronquíolos menores, devido ao seu grande número e organização em paralelo."
+                },
+                {
+                    q: "A lei de Dalton explica porque é que os pulmões enchem e esvaziam durante o ciclo de ventilação.",
+                    a: "Falso. A Lei de Boyle-Mariotte explica por que os pulmões enchem e esvaziam (relação volume-pressão). A Lei de Dalton explica a troca de gases nos alvéolos (pressões parciais)."
+                },
+                {
+                    q: "Hipercapnia é o nome dado a uma condição em que a PCo2 é mais elevada que o normal.",
+                    a: "Verdadeiro. Hipercapnia significa um nível elevado de dióxido de carbono no sangue."
+                },
+                {
+                    q: "O H+ transportado no sangue associada à hemoglobina que passa a ser designada carbaminohemoglobina.",
+                    a: "Falso. O H+ (íons de hidrogênio) se liga à hemoglobina, reduzindo sua afinidade pelo oxigênio (efeito Bohr). A carbaminohemoglobina é formada quando o CO2 se liga à hemoglobina, não o H+."
+                },
+                {
+                    q: "Hipercapnia é o nome dado a uma condição em que a Pco2 é mais baixa que o normal.",
+                    a: "Falso. Hipercapnia é quando a PCO2 é *mais alta* que o normal. Hipocapnia é quando é mais baixa."
+                },
+                {
+                    q: "Há um aspeto comum a todas as superfícies de trocas de gases respiratórios: as transferências de gases ocorrem na fase aquosa, por isso a difusão dos mesmos depende muito da solubilidade dos gases nesse meio.",
+                    a: "Verdadeiro. A difusão dos gases através da membrana respiratória (fase aquosa) é diretamente proporcional à sua solubilidade no líquido."
+                },
+                {
+                    q: "Os pneumócitos Tipo I são células secretoras de surfactante do epitélio pulmonar.",
+                    a: "Falso. Os pneumócitos Tipo I são células epiteliais finas e planas que formam a maior parte da barreira alvéolo-capilar. Os pneumócitos Tipo II são as células que secretam o surfactante pulmonar."
+                },
+                {
+                    q: "A pressão transpulmonar, em condições normais, é superior à atmosférica.",
+                    a: "Falso. A pressão transpulmonar é a diferença entre a pressão alveolar e a pressão intrapleural. Ela é sempre positiva em condições normais (distendendo o pulmão), mas geralmente não é superior à pressão atmosférica. A pressão alveolar se torna ligeiramente negativa ou positiva em relação à atmosférica para o fluxo de ar."
+                },
+                {
+                    q: "A resistência das vias aéreas é diretamente proporcional ao comprimento da via, inversamente proporcional ao raio da via e diretamente proporcional à interação dos gases com as paredes da via.",
+                    a: "Falso. De acordo com a Lei de Poiseuille, a resistência é diretamente proporcional ao comprimento da via e à viscosidade do gás, e inversamente proporcional à QUARTA POTÊNCIA do raio da via ($R \propto L/\text{raio}^4$). A interação dos gases com as paredes não é um fator primário na resistência."
+                },
+                {
+                    q: "Os gases do ar possuem solubilidades diferentes: CO2 é o mais solúvel, o O2 é 20x menos solúvel e o azoto é praticamente insolúvel.",
+                    a: "Verdadeiro. O CO2 é significativamente mais solúvel em líquidos do que o O2, e o N2 é muito menos solúvel do que ambos."
+                },
+                {
+                    q: "O termo Dispneia designa uma respiração difícil.",
+                    a: "Verdadeiro. Dispneia é a sensação subjetiva de dificuldade ou desconforto para respirar."
+                },
+                {
+                    q: "A Capacidade Vital corresponde ao somatório do Volume Corrente, Volumes de Reserva (Inspiratória e Expiratória) e Volume Residual.",
+                    a: "Falso. A Capacidade Vital (CV) é o somatório do Volume Corrente (VC), Volume de Reserva Inspiratória (VRI) e Volume de Reserva Expiratória (VRE). Não inclui o Volume Residual (VR). CV = VC + VRI + VRE."
+                },
+                {
+                    q: "Um paciente que apresente uma capacidade respiratória vital diminuída e um Índice de Tiffeneau normal é suspeito da presença de uma doença obstrutiva.",
+                    a: "Falso. Um Índice de Tiffeneau (VEF1/CVF) normal (ou seja, VEF1 proporcional à CVF) com CV diminuída sugere uma doença restritiva, não obstrutiva. Doenças obstrutivas tipicamente têm um Índice de Tiffeneau diminuído."
+                },
+                {
+                    q: "A determinação da capacidade residual funcional pelo método da pletismografia corporal assenta na Lei de Poiseulle.",
+                    a: "Falso. A pletismografia corporal para determinar a Capacidade Residual Funcional (CRF) assenta na Lei de Boyle (P1V1 = P2V2), pois mede as mudanças de volume pulmonar baseadas nas mudanças de pressão."
+                },
+                {
+                    q: "O FEV representa o Fluxo Expiratório no primeiro segundo e é fundamental para determinar o espaço morto.",
+                    a: "Falso. FEV (Forced Expiratory Volume) é o volume expirado forçadamente em um determinado tempo (geralmente VEF1 para 1 segundo). É usado para avaliar o grau de obstrução das vias aéreas, não o espaço morto. O espaço morto é determinado por métodos como a técnica de Fowler."
+                },
+                {
+                    q: "O Volume Respiratório Minuto é mais informativo do que o Volume Alveolar Minuto porque o primeiro tem em conta o efeito do espaço morto.",
+                    a: "Falso. O Volume Alveolar Minuto é mais informativo porque ele *desconta* o volume do espaço morto, refletindo a quantidade de ar fresco que realmente atinge os alvéolos para troca gasosa. O Volume Respiratório Minuto inclui o ar que fica no espaço morto e não participa das trocas."
+                },
+                {
+                    q: "A determinação da Capacidade Residual Funcional pelo método da Pletismografia Corporal assenta na Lei de Boyle.",
+                    a: "Verdadeiro. (Repetida para reforço) A pletismografia corporal utiliza as relações de pressão e volume da Lei de Boyle para medir volumes pulmonares que não podem ser medidos por espirometria, como a CRF."
+                },
+                {
+                    q: "A cal sodada absorve o oxigénio e pela sua pesagem podemos determinar o consumo de O2.",
+                    a: "Falso. A cal sodada (soda lime) absorve o dióxido de carbono (CO2), não o oxigênio (O2). É usada em circuitos fechados de anestesia e sistemas de espirometria para remover o CO2 exalado."
+                },
+                {
+                    q: "Há um aspeto comum a todas as superfícies de trocas de gases respiratórios: as transferências de gases ocorrem na fase aquosa, por isso a difusão dos mesmos depende muito da solubilidade dos gases.",
+                    a: "Verdadeiro. (Repetida para reforço) Para que os gases se difundam através das membranas biológicas, eles precisam primeiro se dissolver na fase aquosa do líquido que reveste essas membranas."
+                },
+                {
+                    q: "Devido ao volume de ar do espaço morto anatómico, a quantidade de ar “fresco” que atinge os alvéolos, em cada ciclo respiratório, é inferior ao volume corrente.",
+                    a: "Verdadeiro. Uma parte do volume corrente (ar inalado) permanece no espaço morto anatômico (vias aéreas condutoras) e não participa das trocas gasosas. Apenas o volume que atinge os alvéolos é 'ar fresco'."
+                },
+                {
+                    q: "Os pneumócitos Tipo I são células secretoras de surfactante do epitélio pulmonar.",
+                    a: "Falso. (Repetida para reforço) Pneumócitos Tipo I são para troca gasosa; Tipo II produzem surfactante."
+                },
+                {
+                    q: "Cada pulmão é envolvido por um “saco” pleural. Os dois sacos pleurais são completamente separados.",
+                    a: "Verdadeiro. Cada pulmão possui sua própria cavidade pleural, que é um saco fechado e separado do outro, o que impede que o colapso de um pulmão afete o outro (em caso de pneumotórax unilateral)."
+                },
+                {
+                    q: "A pressão transpulmonar, em condições normais, é subatmosférica.",
+                    a: "Falso. A pressão transpulmonar (Palv - Pip) é sempre *positiva* em condições normais, o que significa que a pressão dentro dos alvéolos é maior que a pressão no espaço pleural, mantendo o pulmão expandido. A pressão intrapleural é subatmosférica, mas a transpulmonar é positiva."
+                },
+                {
+                    q: "A tendência para o colapso do pulmão é contrariada pelo surfactante pulmonar e pela complacência desses órgãos.",
+                    a: "Falso. A tendência para o colapso do pulmão é contrariada pelo surfactante pulmonar (que reduz a tensão superficial) e pela pressão transpulmonar positiva (que 'puxa' o pulmão para fora). A complacência é a capacidade de expansão do pulmão, não um fator que contraria o colapso por si só."
+                },
+                {
+                    q: "A resistência das vias aéreas é diretamente proporcional ao comprimento e ao raio da via e à interação dos gases com as paredes da via.",
+                    a: "Falso. (Repetida para reforço e correção de erro) A resistência é diretamente proporcional ao comprimento e inversamente proporcional à QUARTA POTÊNCIA do raio ($R \propto L/\text{raio}^4$). A interação dos gases com as paredes não é um fator primário na resistência conforme a Lei de Poiseuille."
+                },
+                {
+                    q: "Uma situação de fibrose pulmonar, caracterizada por infiltração do tecido pulmonar com proteínas do tecido conjuntivo, diminui a complacência pulmonar, porque aumenta a resistência destes a expandir.",
+                    a: "Verdadeiro. A fibrose pulmonar torna o pulmão mais rígido e menos elástico, diminuindo sua complacência (a capacidade de esticar/expandir) e, consequentemente, aumentando o trabalho necessário para a inspiração."
+                },
+                {
+                    q: "Os gases do ar possuem solubilidades diferentes: CO2 é o menos solúvel, o O2 é 20x mais solúvel e o azoto é praticamente insolúvel.",
+                    a: "Falso. (Repetida para correção de erro) CO2 é o *mais* solúvel, O2 é 20x *menos* solúvel que CO2, e o azoto é praticamente insolúvel. A afirmação inverteu a solubilidade do CO2 e O2."
+                },
+                {
+                    q: "Quando a pressão transpulmonar aumenta o volume da caixa torácica também aumenta.",
+                    a: "Verdadeiro. O aumento da pressão transpulmonar (que reflete o aumento da pressão interna do pulmão em relação à pressão fora dele, no espaço pleural) é o que distende o pulmão. Essa distensão pulmonar está acoplada ao aumento do volume da caixa torácica durante a inspiração."
+                },
+                {
+                    q: "A lei De Boyle relaciona a pressão de um fluido com o seu volume.",
+                    a: "Falso. A Lei de Boyle relaciona a pressão de um GÁS (não fluido em geral) com o seu volume, a uma temperatura e quantidade de gás constantes."
+                },
+                {
+                    q: "Os gradientes de concentração (pressão parcial) de oxigénio são mantidos ativamente nas superfícies de troca de gases respiratórios à custa de mecanismos diversos de fluxo de fluídos.",
+                    a: "Verdadeiro. Os gradientes de pressão parcial de O2 são mantidos pela ventilação (fluxo de ar nos alvéolos) e pela perfusão (fluxo sanguíneo nos capilares), garantindo que o O2 esteja sempre em maior concentração no ar alveolar do que no sangue desoxigenado que chega aos pulmões."
+                },
+                {
+                    q: "Os pigmentos respiratórios – complexos proteicos e iões metálicos – constituíram uma conquista adaptativa muito relevante para os animais.",
+                    a: "Verdadeiro. Pigmentos como a hemoglobina (com ferro) ou hemocianina (com cobre) aumentam dramaticamente a capacidade de transporte de oxigênio no sangue, permitindo o metabolismo aeróbico eficiente em organismos multicelulares."
+                },
+                {
+                    q: "O pico de fluxo expiratório num teste de espirometria é usado para avaliar o grau de colaboração do paciente.",
+                    a: "Verdadeiro. O pico de fluxo expiratório (PFE ou PEF) é uma medida rápida do fluxo máximo que pode ser alcançado durante a expiração forçada. Sua reprodutibilidade é usada para avaliar a cooperação do paciente durante o teste espirométrico."
+                },
+                {
+                    q: "Na pausa respiratória a pressão alveolar é igual à atmosférica.",
+                    a: "Verdadeiro. Durante a pausa entre a inspiração e a expiração (no final da inspiração e no final da expiração), o fluxo de ar cessa, e a pressão dentro dos alvéolos se iguala à pressão atmosférica."
+                },
+                {
+                    q: "Distensibilidade pulmonar é definida como rácio entre a variação volume pulmonar e da pressão transpulmonar.",
+                    a: "Verdadeiro. A complacência (ou distensibilidade) pulmonar é a facilidade com que os pulmões e a parede torácica se expandem. É calculada como a variação de volume dividido pela variação da pressão transpulmonar ($\text{Complacência} = \Delta V / \Delta Ptp$)."
+                },
+                {
+                    q: "O VEF1 (Volume expiratório forçado no 1 segundo) é fundamental para determinar o espaço morto fisiológico.",
+                    a: "Falso. O VEF1 é fundamental para diagnosticar e monitorar doenças obstrutivas das vias aéreas. O espaço morto fisiológico é determinado por métodos como a equação de Bohr, que avalia a diferença entre a PCO2 arterial e a PCO2 no ar expirado."
+                },
+                {
+                    q: "O termo Dispneia designa uma respiração difícil.",
+                    a: "Verdadeiro. (Repetida para reforço) Dispneia é a sensação de falta de ar ou dificuldade para respirar."
+                },
+                {
+                    q: "A Capacidade Vital corresponde ao somatório do Volume Corrente, Volumes de Reserva (Inspiratória e Expiratória) e Volume Residual.",
+                    a: "Falso. (Repetida para correção) A Capacidade Vital (CV) é VC + VRI + VRE. O Volume Residual (VR) não faz parte da Capacidade Vital. A Soma de todos os volumes (VC+VRI+VRE+VR) é a Capacidade Pulmonar Total (CPT)."
+                },
+                {
+                    q: "Um paciente que apresente uma capacidade respiratória vital diminuída e um Índice de Tiffeneau normal é suspeito da presença de uma doença obstrutiva.",
+                    a: "Falso. (Repetida para correção) Capacidade Vital diminuída com Tiffeneau normal (>70-80%) é indicativo de doença RESTRIÇÃO. Obstrutiva é caracterizada por Tiffeneau diminuído (<70%)."
+                },
+                {
+                    q: "A determinação da capacidade residual funcional pelo método da pletismografia corporal assenta na Lei de Poiseulle.",
+                    a: "Falso. (Repetida para correção) Assenta na Lei de Boyle."
+                },
+                {
+                    q: "O FEV representa o Fluxo Expiatório no primeiro segundo e é fundamental para determinar o espaço morto.",
+                    a: "Falso. (Repetida para correção) VEF1 avalia obstrução, não espaço morto."
+                },
+                {
+                    q: "O Volume Respiratório Minuto é mais informativo do que o Volume Alveolar Minuto porque o primeiro tem em conta o efeito do espaço morto.",
+                    a: "Falso. (Repetida para correção) O Volume Alveolar Minuto é mais informativo, pois *exclui* o espaço morto, representando a ventilação efetiva."
+                },
+                {
+                    q: "A determinação da Capacidade Residual Funcional pelo método da Pletismografia Corporal assenta na Lei de Boyle.",
+                    a: "Verdadeiro. (Repetida para reforço) Pletismografia mede volumes pulmonares estáticos com base na Lei de Boyle."
+                }
+
+            ]
+        };
+
+        // Filter out veterinary questions
+        const allQuestions = [
+            { id: 1, text: "1. Os mecanismos envolvidos na formação da urina são a filtração glomerular, reabsorção tubular e a secreção tubular.", theme: "urinario", ans: "Verdadeiro. Estes são os três processos renais fundamentais para a formação da urina." },
+            { id: 2, text: "2. A pressão intrapleural é sempre negativa e a pressão transpulmonar é sempre positiva.", theme: "respiratorio", ans: "Verdadeiro (em condições fisiológicas normais). A pressão intrapleural é negativa para manter os pulmões expandidos, e a pressão transpulmonar (Palv - Pip) é positiva para distender os pulmões." },
+            { id: 3, text: "3. A inulina é substância exógena cujo valor de depuração uma boa estimativa da Taxa de Filtração Glomerular porque o seu processamento renal envolve apenas a filtração glomerular.", theme: "urinario", ans: "Verdadeiro. A inulina é filtrada livremente pelo glomérulo, não é reabsorvida nem secretada pelos túbulos, tornando sua depuração igual à TFG." },
+            { id: 4, text: "4. A depuração plasmática define a quantidade de plasma que tem que ser completamente depurado por minuto.", theme: "urinario", ans: "Verdadeiro. A depuração (clearance) é um volume virtual de plasma que é completamente 'limpo' de uma substância por unidade de tempo." },
+            { id: 5, text: "5. A taxa de filtração glomerular define o volume filtrado formado por minuto sendo mais ou menos constante igual a 125 ml/min", theme: "urinario", ans: "Verdadeiro. A TFG é o volume de filtrado glomerular formado por minuto, e 125 ml/min é o valor médio em adultos saudáveis." },
+            { id: 6, text: "6. O valor de depuração é um valor virtual porque o volume de plasma realmente processado pelos rins é normalmente menos que o valor de depuração.", theme: "urinario", ans: "Falso. O valor de depuração é virtual porque representa o volume de plasma que *teria* de ser completamente depurado para atingir a taxa de excreção observada. O volume de plasma real que flui pelos rins é muito maior." },
+            { id: 7, text: "7. O valor de depuração de uma substância depende dos mecanismos atuantes durante o seu processamento renal. Assim uma substância cujo processo renal evolva os mecanismos (...) ??", theme: "urinario", ans: "Esta pergunta está incompleta e não pode ser respondida. O valor de depuração depende se a substância é filtrada, reabsorvida e/ou secretada." },
+            { id: 8, text: "8. O fluxo de gás é inversamente proporcional à resistência (R). com a maior R a ser registada nos bronquíolos de tamanho medio.", theme: "respiratorio", ans: "Verdadeiro (primeira parte). O fluxo de gás é inversamente proporcional à resistência. A maior resistência é, de fato, registrada nos brônquios segmentares e bronquíolos maiores (tamanho médio), e não nos bronquíolos menores, devido ao seu grande número e organização em paralelo." },
+            { id: 9, text: "9. A lei de Dalton explica porque é que os pulmões enchem e esvaziam durante o ciclo de ventilação.", theme: "respiratorio", ans: "Falso. A Lei de Boyle-Mariotte explica por que os pulmões enchem e esvaziam (relação volume-pressão). A Lei de Dalton explica a troca de gases nos alvéolos (pressões parciais)." },
+            { id: 10, text: "10. Hipercapnia é o nome dado a uma condição em que a PCo2 é mais elevada que o normal.", theme: "respiratorio", ans: "Verdadeiro. Hipercapnia significa um nível elevado de dióxido de carbono no sangue." },
+            { id: 11, text: "11. O H+ transportado no sangue associada à hemoglobina que passa a ser designada carbaminohemoglobina.", theme: "respiratorio", ans: "Falso. O H+ (íons de hidrogênio) se liga à hemoglobina, reduzindo sua afinidade pelo oxigênio (efeito Bohr). A carbaminohemoglobina é formada quando o CO2 se liga à hemoglobina, não o H+." },
+            { id: 12, text: "12. A depuração da inulina é constante e independente da sua concentração plasmática.", theme: "urinario", ans: "Verdadeiro. Uma vez que a inulina é apenas filtrada, a taxa de depuração é constante, independentemente de sua concentração no plasma, desde que a TFG permaneça a mesma." },
+            { id: 13, text: "13. A depuração da glicose é sempre inferior à da inulina", theme: "urinario", ans: "Verdadeiro. A glicose é filtrada e depois completamente reabsorvida (em condições normais) no túbulo contorcido proximal, de modo que sua depuração é zero. A inulina é apenas filtrada, então sua depuração é maior que zero." },
+            { id: 14, text: "14. O transporte renal máximo para uma substância é definido como o valor máximo da taxa de filtração glomerular.", theme: "urinario", ans: "Falso. O transporte renal máximo (Tm) refere-se à capacidade máxima de reabsorção ou secreção de uma substância pelos túbulos renais, não à TFG." },
+            { id: 15, text: "15. Os seres osmorreguladores tem tecidos com um elevado grau de tolerância osmótica", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 16, text: "16. Os teleósteos marinhos excretam grandes quantidades de urina", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 17, text: "17. Os elasmobrânquios marinhos apresentam uma elevada concentração de ureia nos tecidos.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 18, text: "18. As alterações comportamentais são importantes para a osmorregulação", theme: "outros" }, // Fisiologia geral, mas se refere a animais em geral. Manter por enquanto, mas não é aparelho urinário humano.
+            { id: 19, text: "19. Os organismos controlam a osmolaridade dos fluidos orgânicos para controlarem os movimentos de água.", theme: "urinario", ans: "Verdadeiro. A regulação da osmolaridade dos fluidos orgânicos é essencial para manter o equilíbrio hídrico e prevenir o inchaço ou encolhimento celular." },
+            { id: 20, text: "20. Os animais osmoconformistas não têm rins", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 21, text: "21. Alguns invertebrados marinhos são osmorreguladores.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 22, text: "22. Hipercapnia é o nome dado a uma condição em que a Pco2 é mais baixa que o normal.", theme: "respiratorio", ans: "Falso. Hipercapnia é quando a PCO2 é *mais alta* que o normal. Hipocapnia é quando é mais baixa." },
+            { id: 23, text: "23. Há um aspeto comum a todas as superfícies de trocas de gases respiratórios: as transferências de gases ocorrem na fase aquosa, por isso a difusão dos mesmos depende muito da solubilidade dos gases nesse meio", theme: "respiratorio", ans: "Verdadeiro. A difusão dos gases através da membrana respiratória (fase aquosa) é diretamente proporcional à sua solubilidade no líquido." },
+            { id: 24, text: "24. Os pneumócitos Tipo I são células secretoras de surfactante do epitélio pulmonar", theme: "respiratorio", ans: "Falso. Os pneumócitos Tipo I são células epiteliais finas e planas que formam a maior parte da barreira alvéolo-capilar. Os pneumócitos Tipo II são as células que secretam o surfactante pulmonar." },
+            { id: 25, text: "25. A pressão transpulmonar, em condições normais, é superior à atmosférica", theme: "respiratorio", ans: "Falso. A pressão transpulmonar é a diferença entre a pressão alveolar e a pressão intrapleural. Ela é sempre positiva em condições normais (distendendo o pulmão), mas geralmente não é superior à pressão atmosférica. A pressão alveolar se torna ligeiramente negativa ou positiva em relação à atmosférica para o fluxo de ar." },
+            { id: 26, text: "26. A resistência das vias aéreas é diretamente proporcional ao comprimento da via, inversamente proporcional ao raio da via e diretamente proporcional à interação dos gases com as paredes da via.", theme: "respiratorio", ans: "Falso. De acordo com a Lei de Poiseuille, a resistência é diretamente proporcional ao comprimento da via e à viscosidade do gás, e inversamente proporcional à QUARTA POTÊNCIA do raio da via (R ∝ L/raio^4). A interação dos gases com as paredes não é um fator primário na resistência." },
+            { id: 27, text: "27. Os gases do ar possuem solubilidades diferentes: CO2 é o mais solúvel, o O2 é 20x menos solúvel e o azoto é praticamente insolúvel.", theme: "respiratorio", ans: "Verdadeiro. O CO2 é significativamente mais solúvel em líquidos do que o O2, e o N2 é muito menos solúvel do que ambos." },
+            { id: 28, text: "28. Excreção e eliminação são sinônimos", theme: "urinario", ans: "Falso. Excreção é a remoção de resíduos metabólicos do corpo (ex: urina). Eliminação é um termo mais amplo que inclui a remoção de qualquer substância do corpo, inclusive fezes, que não são produtos metabólicos." },
+            { id: 29, text: "29. Em termos evolutivos a opção de uma espécie por uma das formas de excreção de azoto dependeu da pressão de seleção entre poupar água ou gastar energia", theme: "urinario", ans: "Verdadeiro. A excreção de amônia (alta toxicidade, gasta pouca energia, mas requer muita água), ureia (menor toxicidade, gasta mais energia, mas poupa água) ou ácido úrico (baixa toxicidade, gasta mais energia, mas poupa muita água) é uma adaptação evolutiva." },
+            { id: 30, text: "30. O rim tem um importante papel na neoglucogenese Uma secção frontal de rim mostra 3 regiões (do exterior para o interior): medula, córtex e a pélvis renal", theme: "urinario", ans: "Falso. O rim tem um importante papel na neoglucogênese, mas a ordem correta das regiões (do exterior para o interior) é córtex, medula e pélvis renal." },
+            { id: 31, text: "31. O glomérulo é constituído pelo corpúsculo renal e cápsula de Bowman", theme: "urinario", ans: "Falso. O corpúsculo renal é constituído pelo glomérulo (capilares glomerulares) e pela cápsula de Bowman. O glomérulo é uma parte do corpúsculo renal." },
+            { id: 32, text: "32. Os capilares peritubulares envolvem somente o túbulo contornado proximal", theme: "urinario", ans: "Falso. Os capilares peritubulares envolvem todos os segmentos do túbulo renal (contornado proximal, alça de Henle e túbulo contornado distal) e são essenciais para a reabsorção e secreção tubular." },
+            { id: 33, text: "33. Os ductos coletores são permeáveis a água.", theme: "urinario", ans: "Verdadeiro. A permeabilidade à água dos ductos coletores é regulada principalmente pela vasopressina (ADH), que permite a reabsorção de água e a concentração da urina." },
+            { id: 34, text: "34. Uma substância que promove a formação de urina diluída tem o nome de diurético", theme: "urinario", ans: "Verdadeiro. Diuréticos são substâncias que aumentam a produção de urina, muitas vezes inibindo a reabsorção de água e/ou solutos, resultando em urina mais diluída." },
+            { id: 35, text: "35. O conceito depuração renal parte do princípio do equilíbrio de massa.", theme: "urinario", ans: "Verdadeiro. O conceito de depuração renal é baseado no princípio do equilíbrio de massa, que estabelece que a quantidade de uma substância que entra deve ser igual à quantidade que sai, mais a quantidade metabolizada ou armazenada." },
+            { id: 36, text: "36. A carga tubular de uma substância é a quantidade total dessa substância, por unidade de tempo, que é filtrada.", theme: "urinario", ans: "Verdadeiro. A carga tubular filtrada é o produto da concentração plasmática da substância e da taxa de filtração glomerular (TFG)." },
+            { id: 37, text: "37. A concentração plasmática da glicose é normalmente mais elevado do que a do filtrado.", theme: "urinario", ans: "Falso. A glicose é filtrada livremente pelo glomérulo, o que significa que sua concentração no filtrado glomerular é essencialmente a mesma que sua concentração no plasma (a menos que esteja ligada a proteínas, o que não é o caso da glicose)." },
+            { id: 38, text: "38. A creatinina é uma substância endógena que sofre exclusivamente o processo renal de filtração, razão pela qual o seu valor de depuração renal é usado para estimar o fluxo plasmático renal.", theme: "urinario", ans: "Falso. A creatinina é filtrada e, em pequena quantidade, secretada pelos túbulos. Por isso, a depuração da creatinina superestima ligeiramente a TFG, mas é usada como uma estimativa clínica. O PAH (ácido p-amino-hipúrico) é usado para estimar o fluxo plasmático renal, pois é filtrado e secretado quase que completamente." },
+            { id: 39, text: "39. A depuração da inulina é constante e independente da sua concentração plasmática.", theme: "urinario", ans: "Verdadeiro. (Repetida para reforço) A inulina é filtrada livremente e não é reabsorvida nem secretada, então sua depuração é uma medida direta da TFG e não depende da sua concentração plasmática." },
+            { id: 40, text: "40. A reação de Jaffé permite determinar a concentração de inulina, necessária ao cálculo da taxa de filtração glomerular.", theme: "urinario", ans: "Falso. A reação de Jaffé é usada para determinar a concentração de creatinina, não de inulina. A inulina é determinada por outros métodos analíticos." },
+            { id: 41, text: "41. A depuração de inulina permite estimar a taxa de filtração glomerular.", theme: "urinario", ans: "Verdadeiro. A inulina é considerada o padrão-ouro para estimar a TFG devido ao seu comportamento ideal no rim (apenas filtração)." },
+            { id: 42, text: "42. O transporte renal máximo para uma substância é definido como o valor máximo da taxa de filtração glomerular.", theme: "urinario", ans: "Falso. (Repetida para reforço) O transporte máximo (Tm) é a taxa máxima na qual uma substância pode ser transportada (reabsorvida ou secretada) pelos túbulos renais quando os transportadores estão saturados." },
+            { id: 43, text: "43. A depuração da glicose é dependente da sua concentração plasmática.", theme: "urinario", ans: "Verdadeiro. Abaixo do limiar renal, a depuração da glicose é zero. Acima do limiar, quando a glicose aparece na urina, sua depuração aumenta com a concentração plasmática até o Tm ser atingido." },
+            { id: 44, text: "44. Os gradientes de concentração (pressão parcial) de O2 são mantidos ativamente nas superfícies de troca de gases respiratórios à custa de mecanismos diversos de fluidos.", theme: "respiratorio", ans: "Verdadeiro. Os gradientes de pressão parcial de O2 são mantidos pela ventilação (fluxo de ar nos alvéolos) e pela perfusão (fluxo sanguíneo nos capilares), garantindo que o O2 esteja sempre em maior concentração no ar alveolar do que no sangue desoxigenado que chega aos pulmões." },
+            { id: 45, text: "45. Quando o valor do transporte tubular máximo do ácido p-amino-hipúrico (PAH) não é ultrapassado, observa-se que 5-10% desta substância aparece na veia renal, devido ao facto que nem todo o sangue que entra pela artéria renal passa pelos nefrónios.", theme: "urinario", ans: "Verdadeiro. O PAH é quase completamente depurado do plasma que passa pelos rins (filtrado e secretado), mas uma pequena percentagem pode aparecer na veia renal porque nem todo o sangue que entra pela artéria renal perfunde glomérulos e túbulos, ou seja, alguma parte flui por vias não funcionais para depuração." },
+            { id: 46, text: "46. Os pigmentos respiratórios- complexos proteicos e iões metálicos- constituíram uma conquista adaptativa muito relevante para os animais.", theme: "respiratorio", ans: "Verdadeiro. Pigmentos como a hemoglobina (com ferro) ou hemocianina (com cobre) aumentam dramaticamente a capacidade de transporte de oxigênio no sangue, permitindo o metabolismo aeróbico eficiente em organismos multicelulares." },
+            { id: 47, text: "47. O termo Dispneia designa uma respiração difícil.", theme: "respiratorio", ans: "Verdadeiro. Dispneia é a sensação subjetiva de dificuldade ou desconforto para respirar." },
+            { id: 48, text: "48. A Capacidade Vital corresponde ao somatório do Volume Corrente, Volumes de Reserva (Inspiratória e Expiratória) e Volume Residual.", theme: "respiratorio", ans: "Falso. A Capacidade Vital (CV) é o somatório do Volume Corrente (VC), Volume de Reserva Inspiratória (VRI) e Volume de Reserva Expiratória (VRE). Não inclui o Volume Residual (VR). CV = VC + VRI + VRE." },
+            { id: 49, text: "49. Um paciente que apresente uma capacidade respiratória vital diminuída e um Índice de Tiffeneau normal é suspeito da presença de uma doença obstrutiva.", theme: "respiratorio", ans: "Falso. Um Índice de Tiffeneau (VEF1/CVF) normal (ou seja, VEF1 proporcional à CVF) com CV diminuída sugere uma doença restritiva, não obstrutiva. Doenças obstrutivas tipicamente têm um Índice de Tiffeneau diminuído." },
+            { id: 50, text: "50. A determinação da capacidade residual funcional pelo método da pletismografia corporal assenta na Lei de Poiseulle.", theme: "respiratorio", ans: "Falso. A pletismografia corporal para determinar a Capacidade Residual Funcional (CRF) assenta na Lei de Boyle (P1V1 = P2V2), pois mede as mudanças de volume pulmonar baseadas nas mudanças de pressão." },
+            { id: 51, text: "51. O FEV representa o Fluxo Expiratório no primeiro segundo e é fundamental para determinar o espaço morto.", theme: "respiratorio", ans: "Falso. FEV (Forced Expiratory Volume) é o volume expirado forçadamente em um determinado tempo (geralmente VEF1 para 1 segundo). É usado para avaliar o grau de obstrução das vias aéreas, não o espaço morto. O espaço morto é determinado por métodos como a técnica de Fowler." },
+            { id: 52, text: "52. O Volume Respiratório Minuto é mais informativo do que o Volume Alveolar Minuto porque o primeiro tem em conta o efeito do espaço morto.", theme: "respiratorio", ans: "Falso. O Volume Alveolar Minuto é mais informativo porque ele *desconta* o volume do espaço morto, refletindo a quantidade de ar fresco que realmente atinge os alvéolos para troca gasosa. O Volume Respiratório Minuto inclui o ar que fica no espaço morto e não participa das trocas." },
+            { id: 53, text: "53. A determinação da Capacidade Residual Funcional pelo método da Pletismografia Corporal assenta na Lei de Boyle.", theme: "respiratorio", ans: "Verdadeiro. (Repetida para reforço) A pletismografia corporal utiliza as relações de pressão e volume da Lei de Boyle para medir volumes pulmonares que não podem ser medidos por espirometria, como a CRF." },
+            { id: 54, text: "54. A cal soldada absorve o oxigénio e pela sua pesagem podemos determinar o consumo de O2.", theme: "respiratorio", ans: "Falso. A cal sodada (soda lime) absorve o dióxido de carbono (CO2), não o oxigênio (O2). É usada em circuitos fechados de anestesia e sistemas de espirometria para remover o CO2 exalado." },
+            { id: 55, text: "55. Há um aspeto comum a todas as superfícies de trocas de gases respiratórios: as transferências de gases ocorrem na fase aquosa, por isso a difusão dos mesmos depende muito da solubilidade dos gases.", theme: "respiratorio", ans: "Verdadeiro. (Repetida para reforço) Para que os gases se difundam através das membranas biológicas, eles precisam primeiro se dissolver na fase aquosa do líquido que reveste essas membranas." },
+            { id: 56, text: "56. Devido ao volume de ar do espaço morto anatómico, a quantidade de ar “fresco” que atinge os alvéolos, em cada ciclo respiratório, é inferior ao volume corrente.", theme: "respiratorio", ans: "Verdadeiro. Uma parte do volume corrente (ar inalado) permanece no espaço morto anatômico (vias aéreas condutoras) e não participa das trocas gasosas. Apenas o volume que atinge os alvéolos é 'ar fresco'." },
+            { id: 57, text: "57. Os pneumócitos Tipo I são células secretoras de surfactante do epitélio pulmonar.", theme: "respiratorio", ans: "Falso. (Repetida para reforço) Pneumócitos Tipo I são para troca gasosa; Tipo II produzem surfactante." },
+            { id: 58, text: "58. Cada pulmão é envolvido por um “saco” pleural. Os dois sacos pleurais são completamente separados.", theme: "respiratorio", ans: "Verdadeiro. Cada pulmão possui sua própria cavidade pleural, que é um saco fechado e separado do outro, o que impede que o colapso de um pulmão afete o outro (em caso de pneumotórax unilateral)." },
+            { id: 59, text: "59. A pressão transpulmonar, em condições normais, é subatmosférica. (??)", theme: "respiratorio", ans: "Falso. A pressão transpulmonar (Palv - Pip) é sempre *positiva* em condições normais, o que significa que a pressão dentro dos alvéolos é maior que a pressão no espaço pleural, mantendo o pulmão expandido. A pressão intrapleural é subatmosférica, mas a transpulmonar é positiva." },
+            { id: 60, text: "60. A tendência para o colapso do pulmão é contrariada pelo surfactante pulmonar e pela complacência desses órgãos.", theme: "respiratorio", ans: "Falso. A tendência para o colapso do pulmão é contrariada pelo surfactante pulmonar (que reduz a tensão superficial) e pela pressão transpulmonar positiva (que 'puxa' o pulmão para fora). A complacência é a capacidade de expansão do pulmão, não um fator que contraria o colapso por si só." },
+            { id: 61, text: "61. A resistência das vias aéreas é diretamente proporcional ao comprimento e ao raio da via e á interação dos gases com as paredes da via", theme: "respiratorio", ans: "Falso. (Repetida para reforço e correção de erro) A resistência é diretamente proporcional ao comprimento e inversamente proporcional à QUARTA POTÊNCIA do raio (R ∝ L/raio^4). A interação dos gases com as paredes não é um fator primário na resistência conforme a Lei de Poiseuille." },
+            { id: 62, text: "62. Uma situação de fibrose pulmonar, caracterizada por infiltração do tecido pulmonar com proteínas do tecido conjuntivo, diminui a complacência pulmonar, porque aumenta a resistência destes a expandir.", theme: "respiratorio", ans: "Verdadeiro. A fibrose pulmonar torna o pulmão mais rígido e menos elástico, diminuindo sua complacência (a capacidade de esticar/expandir) e, consequentemente, aumentando o trabalho necessário para a inspiração." },
+            { id: 63, text: "63. Os gases do ar possuem solubilidades diferentes: CO2 é o menos solúvel, o O2 é 20x mais solúvel e o azoto é praticamente insolúvel.", theme: "respiratorio", ans: "Falso. (Repetida para correção de erro) CO2 é o *mais* solúvel, O2 é 20x *menos* solúvel que CO2, e o azoto é praticamente insolúvel. A afirmação inverteu a solubilidade do CO2 e O2." },
+            { id: 64, text: "64. Muitos peixes usufruem de uma respiração aérea adricional", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 65, text: "65. A linfa tem uma constituição semelhante á do plasma sanguíneo, embora seja mais pobre em proteínas.", theme: "outros" }, // Fisiologia geral do sangue, não específica urinário ou respiratório.
+            { id: 66, text: "66. Alterações das provas de coagulação podem resultar de uma doença grave no fígado.", theme: "outros" }, // Fisiologia geral do sangue
+            { id: 67, text: "67. Uma das funções das proteínas plasmáticas inclui o transporte de ferro no sangue.", theme: "outros" }, // Fisiologia geral do sangue
+            { id: 68, text: "68. A urina de um herbívoro adulto é por regra, ácida. Exceto quando lactante (alimentado com leite) altura e excreta urina alcalina.", theme: "outros" }, // Veterinária
+            { id: 69, text: "69. A urina com cor vermelha à micção é anormal, mas pode resultar de uma situação perfeitamente inofensiva.", theme: "urinario", ans: "Verdadeiro. Embora anormal, pode ser inofensiva se for devido à ingestão de certos alimentos (ex: beterraba) ou medicamentos, mas sempre requer investigação médica para descartar causas patológicas." },
+            { id: 70, text: "70. A urina constitui um produto de excreção, no entanto nem todos os seus constituintes são produtos do mecanismo celular.", theme: "urinario", ans: "Verdadeiro. Embora a urina contenha muitos produtos de excreção celular (ureia, creatinina), ela também contém substâncias como água e íons que são filtradas do plasma e reabsorvidas/secretadas para manter o equilíbrio homeostático, mas não são 'produtos' do metabolismo celular em si." },
+            { id: 71, text: "71. A presença de turvação na urina armazenada no frio é frequente e constitui um achado perfeitamente normal, mas a presença de turvação na urina à micção só é normal em animais solípedes.", theme: "outros" }, // Veterinária
+            { id: 72, text: "72. A centrifugação da urina é frequentemente realizada uma vez que permite eliminar do sobrenadante moléculas ou estruturas suficientemente densas como eritrócitos enquanto moléculas menos densas permanecem", theme: "urinario", ans: "Falso. A centrifugação da urina permite separar os elementos formados (células, cilindros, cristais, bactérias) que são mais densos e se depositam no fundo do tubo, formando o sedimento. O sobrenadante é o líquido que fica acima desses elementos. Moléculas dissolvidas permanecem no sobrenadante." },
+            { id: 73, text: "73. Independentemente do organismo em causa a passagem do O2 na membrana respiratória ocorre por difusão simples.", theme: "respiratorio", ans: "Verdadeiro. Em todos os organismos que realizam trocas gasosas respiratórias, a passagem de O2 e CO2 através das membranas celulares ocorre por difusão simples, seguindo seus gradientes de pressão parcial." },
+            { id: 74, text: "74. O complexo entre a proteína e o ferro designa-se transferina e impede a filtração deste mineral no glomérulo renal.", theme: "outros" }, // Fisiologia geral, mas não urinário/respiratório principal
+            { id: 75, text: "75. A solubilidade de um gás aumenta com a temperatura e a salinidade da água", theme: "outros" }, // Fisiologia comparada/geral, mas não específico respiratório/urinário humano.
+            { id: 76, text: "76. A forma de disposição concorrente do fluxo de água do fluxo de sangue é fundamental para aumentar as trocas gasosas nos peixes.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 77, text: "77. Os aracnídeos possuem pulmões lamelares ou sistema de traqueias.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 78, text: "78. Os pulmões das aves possuem uma estrutura interna idêntica á dos mamíferos.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 79, text: "79. Os sacos aéreos das aves estão dispostos de modo a garantir um fluxo bidirecional do ar com a máxima eficácia.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 80, text: "80. A colheita da urina por algaliação é ideal quando se suspeita de infeção urinária.", theme: "urinario", ans: "Verdadeiro. A algaliação (cateterização) é uma técnica que permite obter uma amostra de urina estéril, minimizando a contaminação, o que é ideal para cultura bacteriana em casos de suspeita de infecção urinária." },
+            { id: 81, text: "81. A análise do sedimento da urina que resulta na observação de eritrócitos traduz-se num diagnóstico de hematúria, piúria e bacteriúria compatível com infeção urinária.", theme: "urinario", ans: "Falso. A observação de eritrócitos no sedimento urinário indica hematúria. Piúria (presença de leucócitos) e bacteriúria (presença de bactérias) indicam infecção. A presença de eritrócitos por si só não significa piúria ou bacteriúria, embora possa acompanhar uma infecção." },
+            { id: 82, text: "82. Um teste de Johnnessem positivo indica oxidação do cromogéneo pela presença de peroxidases o que indica hematúria, mas não hemoglobinúria", theme: "outros" }, // Erro na pergunta/informação imprecisa para o contexto humano ou veterinário
+            { id: 83, text: "83. Um teste de benedict positivo indica oxidação do ferro presente no reagente indicando a presença de glicose na urina.", theme: "outros" }, // Química/bioquímica, não diretamente fisiologia urinária humana.
+            { id: 84, text: "84. Nos animais a osmorregulação pode ser feita também pelo sistema tegumentar.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 85, text: "85. Alguns resíduos metabólicos podem ser usados na osmorregulação.", theme: "outros" }, // Fisiologia comparada
+            { id: 86, text: "86. O aparecimento de turvação quando o sobrenadante de uma urina centrifugada é aquecido a uma chama é compatível com a presença de albuminas na urina.", theme: "urinario", ans: "Verdadeiro. A turvação que aparece com o aquecimento (e desaparece com adição de ácido acético diluído) é um teste qualitativo para a presença de proteínas (albuminas) na urina, pois as proteínas desnaturam e precipitam com o calor." },
+            { id: 87, text: "87. A identificação de hemoglobinúria na urina com baixa densidade específica pode resultar de hematúria com posterior hemólise de eritrócitos.", theme: "urinario", ans: "Verdadeiro. A hemoglobinúria (hemoglobina livre na urina) pode ocorrer devido à hemólise intravascular, ou à hemólise de eritrócitos presentes na urina (hematúria) em urinas com baixa osmolaridade, que levam à lise dos glóbulos vermelhos. A baixa densidade específica sugere urina diluída, que é um fator de risco para hemólise de eritrócitos." },
+            { id: 88, text: "88. O teste de Fouchet é positivo quando a bilirrubina da urina é oxida a biliverdina.", theme: "outros" }, // Bioquímica clínica, não fisiologia urinária primária
+            { id: 89, text: "89. A glicose quando presente na urina é usada com substrato para a síntese de peroxido de hidrogénio que oxida o cromogéneo da tira reativa permitindo um disgnóstico de glicosúria", theme: "urinario", ans: "Verdadeiro. A tira reativa para glicose na urina utiliza a enzima glicose oxidase para oxidar a glicose a ácido glucônico e peróxido de hidrogênio. O peróxido de hidrogênio, por sua vez, oxida um cromogênio, resultando em uma mudança de cor." },
+            { id: 90, text: "90. Em alguns animais marinhos o CO2 é eliminado quer por difusão quer por transporte ativo secundário.", theme: "outros" }, // Fisiologia comparada
+            { id: 91, text: "91. Uma cor vermelha no sobrenadante de uma urina centrifugada é compatível com hematúria.", theme: "urinario", ans: "Falso. Uma cor vermelha no sobrenadante de uma urina centrifugada indica a presença de hemoglobina (hemoglobinúria) ou mioglobina (mioglobinúria), pois os eritrócitos teriam se sedimentado. Na hematúria (presença de eritrócitos inteiros), o sobrenadante seria claro, e o sedimento seria vermelho." },
+            { id: 92, text: "92. Uma reação de Robert positiva avaliada pela presença de um anel branco opaco entre o reagente e a urina é indicativo de que há proteinuria.", theme: "urinario", ans: "Verdadeiro. O teste de Robert (e outros testes de anel de coagulação) são testes qualitativos para proteínas na urina, onde a formação de um anel branco opaco na interface da urina e do reagente indica a presença de proteínas." },
+            { id: 93, text: "93. Uma leitura de densidade urinária de 1,035 lida com um urodencimetro calibrado para 20o quando a urina se encontra a 14o, significa que a densidade real é de 1,037.", theme: "urinario", ans: "Verdadeiro. A densidade da urina varia com a temperatura. Geralmente, para cada 3°C abaixo da temperatura de calibração do refratômetro/urinodensímetro, deve-se adicionar 0,001 à leitura. Neste caso, 20°C - 14°C = 6°C de diferença. 6/3 = 2. Então, 1.035 + 0.002 = 1.037." },
+            { id: 94, text: "94. Concentração elevada de vitamina C na urina pode ser responsável por falsos negativos por impedir a redução dos substratos.", theme: "urinario", ans: "Verdadeiro. A vitamina C (ácido ascórbico) é um forte agente redutor. Em altas concentrações na urina, pode interferir em testes de tira reativa que dependem de reações de oxidação, como os para glicose, sangue (hemoglobina/mioglobina) e nitrito, levando a falsos negativos." },
+            { id: 95, text: "95. A presença de cristais de estruvite no sedimento urinário de um carnívoro é sempre motivo de preocupação.", theme: "outros" }, // Veterinária
+            { id: 96, text: "96. O limiar plasmático de uma substância é a concentração mínima que haja reabsorção ou secreção.", theme: "urinario", ans: "Falso. O limiar plasmático de uma substância é a concentração plasmática a partir da qual essa substância começa a aparecer na urina porque a capacidade tubular de reabsorção (ou secreção) foi excedida." },
+            { id: 97, text: "97. A depuração não é um valor real, mas sim um valor de equivalência porque os rins não depuram totalmente de plasma.", theme: "urinario", ans: "Verdadeiro. A depuração é um valor virtual ou de equivalência. Ela representa o volume de plasma que seria completamente 'limpo' de uma substância em um dado tempo, mas o volume real de plasma que passa pelos rins é muito maior e apenas uma fração dele é depurada." },
+            { id: 98, text: "98. O pico de fluxo expiratório num teste de espirometria é usado para avaliar o grau de colaboração do paciente.", theme: "respiratorio", ans: "Verdadeiro. O pico de fluxo expiratório (PFE ou PEF) é uma medida rápida do fluxo máximo que pode ser alcançado durante a expiração forçada. Sua reprodutibilidade é usada para avaliar a cooperação do paciente durante o teste espirométrico." },
+            { id: 99, text: "99. A pressão transpulmonar é definida como a diferença entre a pressão intrapulmonar e a atmosférica.", theme: "respiratorio", ans: "Falso. A pressão transpulmonar é a diferença entre a pressão intrapulmonar (alveolar) e a pressão intrapleural." },
+            { id: 100, text: "100. O enfisema e a bronquite crónica são exemplos de doenças obstrutivas.", theme: "respiratorio", ans: "Verdadeiro. Enfisema e bronquite crônica são as duas principais condições que compõem a Doença Pulmonar Obstrutiva Crónica (DPOC), caracterizada por limitação do fluxo aéreo." },
+            { id: 101, text: "101. O VEF1 (Volume expiratório forçado no 1 segundo) é fundamental para determinar o espaço morto fisiológico.", theme: "respiratorio", ans: "Falso. O VEF1 é fundamental para diagnosticar e monitorar doenças obstrutivas das vias aéreas. O espaço morto fisiológico é determinado por métodos como a equação de Bohr, que avalia a diferença entre a PCO2 arterial e a PCO2 no ar expirado." },
+            { id: 102, text: "102. Na pausa respiratória a pressão alveolar é igual à atmosférica.", theme: "respiratorio", ans: "Verdadeiro. Durante a pausa entre a inspiração e a expiração (no final da inspiração e no final da expiração), o fluxo de ar cessa, e a pressão dentro dos alvéolos se iguala à pressão atmosférica." },
+            { id: 103, text: "103. Distensibilidade pulmonar é definida como rácio entre a variação volume pulmonar e da pressão transpulmonar.", theme: "respiratorio", ans: "Verdadeiro. A complacência (ou distensibilidade) pulmonar é a facilidade com que os pulmões e a parede torácica se expandem. É calculada como a variação de volume dividido pela variação da pressão transpulmonar (Complacência = ΔV / ΔPtp)." },
+            { id: 104, text: "104. Entre os principais osmolitos temos a ureia e o ácido úrico.", theme: "outros" }, // Fisiologia comparada/geral, mas não exclusivo ao sistema urinário humano.
+            { id: 105, text: "105. Nos elasmobrânquios a ureia no sangue é elevada.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 106, text: "106. A osmorregulação é em grande parte efetuada pelo sistema tegumentar.", theme: "outros" }, // Veterinária/fisiologia comparada
+            { id: 107, text: "107. O ar atmosférico possui a mesma composição relativa de todos os fases em qualquer parte da atmosfera terrestre devido ubiquidade dos ventos.", theme: "outros" }, // Geografia/Meteorologia, não fisiologia humana.
+            { id: 108, text: "108. As células Justaglomerulares fazem parte da mácula densa.", theme: "urinario", ans: "Falso. As células Justaglomerulares (células granulares) estão localizadas na parede da arteríola aferente. A mácula densa é uma parte do túbulo contorcido distal. Juntas, elas formam o aparelho justaglomerular." },
+            { id: 109, text: "109. As células Justaglomerulares são responsáveis pela libertação de renina.", theme: "urinario", ans: "Verdadeiro. As células justaglomerulares secretam renina em resposta à diminuição da pressão arterial, diminuição do volume sanguíneo ou diminuição da concentração de sódio na mácula densa." },
+            { id: 110, text: "110. A angiosteina II, ao atuar sobre o Complexo Justaglomerular (CJ) , vai mediar a libertação de aldosterona.", theme: "urinario", ans: "Falso. A angiotensina II atua diretamente sobre o córtex adrenal para estimular a libertação de aldosterona, e não diretamente sobre o complexo justaglomerular para mediar a libertação de aldosterona. A angiotensina II é formada pela ação da renina (liberada pelo CJ)." },
+            { id: 111, text: "111. Uma ansa de Hele comprida está relacionada com uma maior capacidade de concentração de urina.", theme: "urinario", ans: "Verdadeiro. Alças de Henle mais longas permitem um gradiente osmótico medular mais acentuado, o que é essencial para a capacidade do rim de concentrar a urina." },
+            { id: 112, text: "112. O aumento das concentrações de dióxido de carbono e de hidrogénio puxam a curva de dissociação o2- hemoglobina para a esquerda.", theme: "respiratorio", ans: "Falso. O aumento das concentrações de CO2 e H+ (diminuição do pH) desvia a curva de dissociação da oxigenoemoglobina para a *direita* (Efeito Bohr), o que significa que a hemoglobina libera mais oxigênio para os tecidos." },
+            { id: 113, text: "113. Quando a pressão transpulmonar aumenta o volume da caixa torácica também aumenta.", theme: "respiratorio", ans: "Verdadeiro. O aumento da pressão transpulmonar (que reflete o aumento da pressão interna do pulmão em relação à pressão fora dele, no espaço pleural) é o que distende o pulmão. Essa distensão pulmonar está acoplada ao aumento do volume da caixa torácica durante a inspiração." },
+            { id: 114, text: "114. A lei De boyle relaciona a pressão de um fluido com o seu volume", theme: "respiratorio", ans: "Falso. A Lei de Boyle relaciona a pressão de um GÁS (não fluido em geral) com o seu volume, a uma temperatura e quantidade de gás constantes." },
+            { id: 115, text: "115. Os gradientes de concentração (pressão parcial) de oxigénio são mantidos ativamente nas superfícies de troca de gases respiratórios à custa de mecanismos diversos de fluxo de fluídos.", theme: "respiratorio", ans: "Verdadeiro. Os gradientes de pressão parcial de O2 são mantidos pela ventilação (fluxo de ar nos alvéolos) e pela perfusão (fluxo sanguíneo nos capilares), garantindo que o O2 esteja sempre em maior concentração no ar alveolar do que no sangue desoxigenado que chega aos pulmões." },
+            { id: 116, text: "116. Os pigmentos respiratórios – complexos proteicos e iões metálicos – constituíram uma conquista adaptativa muito relevante para os animais.", theme: "respiratorio", ans: "Verdadeiro. (Repetida para reforço) Pigmentos como a hemoglobina (com ferro) ou hemocianina (com cobre) aumentam dramaticamente a capacidade de transporte de oxigênio no sangue, permitindo o metabolismo aeróbico eficiente em organismos multicelulares." },
+            { id: 117, text: "117. A reação do biureto é altamente especifica para a proteína sendo essencialmente um indicador das ligações peptídicas existentes, uma vez que a reação só ocorre quando existem pelo menos três aminoácidos numa cadeia peptídica", theme: "outros" }, // Bioquímica
+            { id: 118, text: "118. A desidratação pode causar um aumento do volume globular.", theme: "outros" }, // Fisiologia geral do sangue
+            { id: 119, text: "119. A lise excessiva de eritrócitos resulta numa contagem de eritrócitos diminuída, designada eritrocitose.", theme: "urinario", ans: "Falso. A lise excessiva de eritrócitos (hemólise) resulta numa contagem de eritrócitos diminuída, mas a designação é anemia hemolítica. Eritrocitose é o aumento do número de eritrócitos." },
+            { id: 120, text: "120. O aumento do volume globular indica policitemia, como a que é provocada por deficiência de ferro.", theme: "urinario", ans: "Falso. O aumento do volume globular (hematócrito) indica policitemia. No entanto, a deficiência de ferro geralmente causa anemia microcítica, onde os eritrócitos são menores (menor volume globular médio), não policitemia." },
+            { id: 121, text: "121. Nos mamíferos não-ruminantes os leucócitos mais abundantes são os eosinófilos.", theme: "outros" }, // Veterinária
+            { id: 122, text: "122. Na maior parte das espécies de ruminantes, os linfócitos são os mais abundantes dos leucócitos.", theme: "outros" }, // Veterinária
+            { id: 123, text: "123. Um volume globular de 40% significa que há 40 ml de eritrócitos em 100 ml de sangue", theme: "outros" }, // Fisiologia geral do sangue
+            { id: 124, text: "124. Uma ação batmotrópica no coração significa alteração da excitabilidade cardíaca, ou seja, do estimulo limiar.", theme: "outros" }, // Cardiologia
+            { id: 125, text: "125. As globulinas são o grupo mais importante das proteínas plasmáticas", theme: "urinario", ans: "Falso. As albuminas são o grupo mais abundante e mais importante das proteínas plasmáticas, contribuindo significativamente para a pressão oncótica do sangue. As globulinas também são importantes, mas as albuminas são mais numerosas." },
+            { id: 126, text: "126. O coeficiente de extinção molar de uma substância não é importante em espetrofotometria;", theme: "outros" }, // Bioquímica/análise
+            { id: 127, text: "127. Para a determinação das proteínas plasmáticas temos que garantir que após a recolha da amostra permanecerá no estado líquido", theme: "outros" }, // Bioquímica/análise
+            { id: 128, text: "128. Se esse informação não estiver disponível, uma das primeiras ações deverá ser determinar o comprimento de onda ideal", theme: "outros" }, // Bioquímica/análise
+            { id: 129, text: "129. No método que analisamos na aula, foi anulada a influencia da cor da solução de trabalho (solução de Biureto);", theme: "outros" }, // Bioquímica/análise
+            { id: 130, text: "130. Soro e plasma são nomes diferentes para a mesma substância;", theme: "urinario", ans: "Falso. Plasma é o componente líquido do sangue com todos os fatores de coagulação. Soro é o plasma menos os fatores de coagulação (ou seja, o líquido que resta após o sangue coagular)." },
+            { id: 131, text: "131. O resultado de determinação das proteínas plasmáticas deve exclusivamente apresentado em percentagem da amostra;", theme: "outros" }, // Bioquímica/análise
+            { id: 132, text: "132. O método que analisamos na aula, permite quantificar os vários tipos de proteínas plasmáticas", theme: "outros" }, // Bioquímica/análise
+            { id: 133, text: "133. A dimensão dos tubos de espetrofotometro são padronizadas", theme: "outros" }, // Bioquímica/análise
+            { id: 134, text: "134. O hematócrito permite distribuir os componentes do sangue de acordo com a densidade. Os mais densos no topo e os menos densos na base.", theme: "outros" }, // Hematologia
+            { id: 135, text: "135. Uma ação cronotrópica no coração significa alteração da ritmicidade cardíaca.", theme: "outros" }, // Cardiologia
+            { id: 136, text: "136. A utilização de um tubo capilar sem anticoagulante permite colher a amostra de sangue diretamente do animal para o tubo a submeter ao hematócrito.", theme: "outros" }, // Hematologia / Veterinária
+            { id: 137, text: "137. Apos a execução de um microhematócrito, obtém um tubo de wintrobe preenchido até à marca de 10.", theme: "outros" }, // Hematologia
+            { id: 138, text: "138. As proteínas presentes no plasma, vão reagir com o reagente de biureto, o que provoca a alteração da cor da solução para azul.", theme: "outros" }, // Bioquímica
+            { id: 139, text: "139. É possível contar plaquetas usando um fator de diluição idêntico ao dos leucócitos e contando-as na área de contagem dos eritrócitos.", theme: "outros" }, // Hematologia
+            { id: 140, text: "140. O termo Dispneia designa uma respiração difícil.", theme: "respiratorio", ans: "Verdadeiro. (Repetida para reforço) Dispneia é a sensação de falta de ar ou dificuldade para respirar." },
+            { id: 141, text: "141. A Capacidade Vital corresponde ao somatório do Volume Corrente, Volumes de Reserva (Inspiratória e Expiratória) e Volume Residual.", theme: "respiratorio", ans: "Falso. (Repetida para correção) A Capacidade Vital (CV) é VC + VRI + VRE. O Volume Residual (VR) não faz parte da Capacidade Vital. A Soma de todos os volumes (VC+VRI+VRE+VR) é a Capacidade Pulmonar Total (CPT)." },
+            { id: 142, text: "142. Um paciente que apresente uma capacidade respiratória vital diminuída e m Índice de Tiffeneau normal é suspeito da presença de uma doença obstrutiva.", theme: "respiratorio", ans: "Falso. (Repetida para correção) Capacidade Vital diminuída com Tiffeneau normal (>70-80%) é indicativo de doença RESTRIÇÃO. Obstrutiva é caracterizada por Tiffeneau diminuído (<70%)." },
+            { id: 143, text: "143. A determinação da capacidade residual funcional pelo método da pletismografia corporal assenta na Lei de Poiseulle.", theme: "respiratorio", ans: "Falso. (Repetida para correção) Assenta na Lei de Boyle." },
+            { id: 144, text: "144. O FEV representa o Fluxo Expiatório no primeiro segundo e é fundamental para determinar o espaço morto.", theme: "respiratorio", ans: "Falso. (Repetida para correção) VEF1 avalia obstrução, não espaço morto." },
+            { id: 145, text: "145. O Volume Respiratório Minuto é mais informativo do que o Volume Alveolar Minuto porque o primeiro tem em conta o efeito do espaço morto.", theme: "respiratorio", ans: "Falso. (Repetida para correção) O Volume Alveolar Minuto é mais informativo, pois *exclui* o espaço morto, representando a ventilação efetiva." },
+            { id: 146, text: "146. A determinação da Capacidade Residual Funcional pelo método da Pletismografia Corporal assenta na Lei de Boyle.", theme: "respiratorio", ans: "Verdadeiro. (Repetida para reforço) Pletismografia mede volumes pulmonares estáticos com base na Lei de Boyle." },
+            { id: 147, text: "147. Os megacariócitos irão dar origem às plaquetas", theme: "outros" }, // Hematologia
+            { id: 148, text: "148. Os elementos figurados do sangue são formados em todos os ossos com medula", theme: "outros" }, // Hematologia
+            { id: 149, text: "149. As células sanguíneas maduras são resultado da diferenciação direta a partir das células tronco existindo vários tipos de células tronco", theme: "outros" }, // Hematologia
+            { id: 150, text: "150. Só os eritrócitos maduros vão ser introduzidos na corrente sanguínea.", theme: "outros" }, // Hematologia
+            { id: 151, text: "151. Entre as linhas celulares da hematopoiese temos a linha eritroide, a linha mieloide e a linha linfoide", theme: "outros" }, // Hematologia
+            { id: 152, text: "152. A linha linfoide vai dar origem aos eritrócitos, linfócitos e plaquetas", theme: "outros" }, // Hematologia
+            { id: 153, text: "153. Entre os vários tipos de linfócitos temos os B, T, NK e NKT", theme: "outros" }, // Hematologia
+            { id: 154, text: "154. Os monócitos resultam da diferenciação de células da linha mieloide através de um processo denominado monocitopoiese", theme: "outros" }, // Hematologia
+            { id: 155, text: "155. Proteínas plasmáticas não são filtradas contribuindo para manter a pressão oncótica do sangue", theme: "urinario", ans: "Verdadeiro. As proteínas plasmáticas são geralmente muito grandes para serem filtradas pelo glomérulo e permanecem no sangue, criando a pressão oncótica (ou coloidosmótica) que ajuda a reabsorver o líquido de volta para os capilares." }
+        ];
+
+        let selectedThemeQuestions = [];
+        let currentQuestionIndex = 0;
+        let knownQuestions = []; // Questions marked as 'Sabia'
+        let mediumPriorityQuestions = []; // Questions marked as '+/-'
+        let highPriorityQuestions = []; // Questions marked as 'Não Sabia'
+
+        let allReviewedQuestions = []; // To track all questions that passed through the cycle
+        let reviewCounts = {}; // {questionId: {sabia: N, mais_ou_menos: N, nao_sabia: N}}
+
+        function filterQuestions() {
+            questions.urinario = allQuestions.filter(q => q.theme === 'urinario' && q.ans).map(q => ({ q: q.text.replace(/^\d+\.\s/, ''), a: q.ans, id: q.id }));
+            questions.respiratorio = allQuestions.filter(q => q.theme === 'respiratorio' && q.ans).map(q => ({ q: q.text.replace(/^\d+\.\s/, ''), a: q.ans, id: q.id }));
+        }
+        filterQuestions(); // Initial filter
+
+        function selectTheme(theme) {
+            currentQuestionIndex = 0;
+            knownQuestions = [];
+            mediumPriorityQuestions = [];
+            highPriorityQuestions = [];
+            allReviewedQuestions = [];
+            reviewCounts = {};
+
+            selectedThemeQuestions = shuffleArray([...questions[theme]]);
+            
+            // Initialize review counts for each question
+            selectedThemeQuestions.forEach(q => {
+                reviewCounts[q.id] = { sabia: 0, mais_ou_menos: 0, nao_sabia: 0, total_reviews: 0 };
+            });
+
+            document.getElementById('themeSelection').style.display = 'none';
+            document.getElementById('questionArea').style.display = 'block';
+            document.getElementById('summaryArea').style.display = 'none';
+            showNextQuestion();
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function showNextQuestion() {
+            document.getElementById('answerText').style.display = 'none';
+            document.getElementById('answerText').innerHTML = '';
+
+            let questionToShow = null;
+
+            if (highPriorityQuestions.length > 0) {
+                questionToShow = highPriorityQuestions.shift(); // Always prioritize 'Não Sabia'
+            } else if (selectedThemeQuestions.length > 0) {
+                questionToShow = selectedThemeQuestions.shift(); // Then new questions
+            } else if (mediumPriorityQuestions.length > 0) {
+                questionToShow = mediumPriorityQuestions.shift(); // Then '+/-'
+            } else if (knownQuestions.length > 0) {
+                questionToShow = knownQuestions.shift(); // Finally 'Sabia' if all others are exhausted
+            }
+
+            if (questionToShow) {
+                currentQuestionIndex = allQuestions.findIndex(q => q.id === questionToShow.id); // Update index for global array
+                document.getElementById('questionText').innerText = questionToShow.q;
+                document.getElementById('answerText').innerHTML = '<strong>Resposta:</strong> ' + questionToShow.a;
+            } else {
+                showSummary();
+            }
+            updateProgressBar();
+        }
+
+        function showAnswer() {
+            document.getElementById('answerText').style.display = 'block';
+        }
+
+        function markAnswer(status) {
+            const currentQuestion = allQuestions.find(q => q.id === selectedThemeQuestions[currentQuestionIndex] || (highPriorityQuestions.length > 0 && q.id === highPriorityQuestions[0].id) || (mediumPriorityQuestions.length > 0 && q.id === mediumPriorityQuestions[0].id) || (knownQuestions.length > 0 && q.id === knownQuestions[0].id) || (selectedThemeQuestions.length > 0 && q.id === selectedThemeQuestions[0].id));
+
+            if (!currentQuestion) return; // Should not happen
+
+            // Ensure the question is added to allReviewedQuestions only once
+            if (!allReviewedQuestions.find(q => q.id === currentQuestion.id)) {
+                allReviewedQuestions.push(currentQuestion);
+            }
+
+            // Update review counts
+            reviewCounts[currentQuestion.id][status]++;
+            reviewCounts[currentQuestion.id].total_reviews++;
+
+            if (status === 'sabia') {
+                // If it was in high/medium priority, remove it from there
+                highPriorityQuestions = highPriorityQuestions.filter(q => q.id !== currentQuestion.id);
+                mediumPriorityQuestions = mediumPriorityQuestions.filter(q => q.id !== currentQuestion.id);
+                
+                // Add to known, but only if it's not already there
+                if (!knownQuestions.find(q => q.id === currentQuestion.id)) {
+                    knownQuestions.push(currentQuestion);
+                }
+            } else if (status === 'mais-ou-menos') {
+                // If it was high priority, downgrade to medium
+                highPriorityQuestions = highPriorityQuestions.filter(q => q.id !== currentQuestion.id);
+                if (!mediumPriorityQuestions.find(q => q.id === currentQuestion.id)) {
+                    mediumPriorityQuestions.push(currentQuestion);
+                }
+            } else if (status === 'nao-sabia') {
+                // Always add to high priority
+                if (!highPriorityQuestions.find(q => q.id === currentQuestion.id)) {
+                    highPriorityQuestions.push(currentQuestion);
+                }
+            }
+            
+            showNextQuestion();
+        }
+
+        function updateProgressBar() {
+            const totalQuestions = selectedThemeQuestions.length + highPriorityQuestions.length + mediumPriorityQuestions.length + knownQuestions.length;
+            const completedQuestions = allReviewedQuestions.length;
+            const progressPercentage = (completedQuestions / (selectedThemeQuestions.length + questions[currentTheme].length)) * 100; // Total original questions
+
+            if (isNaN(progressPercentage)) { // Handle case where selectedThemeQuestions might be empty initially
+                document.getElementById('progressBar').style.width = '0%';
+            } else {
+                document.getElementById('progressBar').style.width = progressPercentage + '%';
+            }
+        }
+
+        let currentTheme = '';
+
+        function selectTheme(theme) {
+            currentTheme = theme;
+            currentQuestionIndex = 0;
+            knownQuestions = [];
+            mediumPriorityQuestions = [];
+            highPriorityQuestions = [];
+            allReviewedQuestions = [];
+            reviewCounts = {};
+
+            // Filter questions for the selected theme and make copies for manipulation
+            selectedThemeQuestions = shuffleArray([...questions[theme]]);
+            
+            // Initialize review counts for each question
+            selectedThemeQuestions.forEach(q => {
+                reviewCounts[q.id] = { sabia: 0, mais_ou_menos: 0, nao_sabia: 0, total_reviews: 0, first_answered: null };
+            });
+
+            document.getElementById('themeSelection').style.display = 'none';
+            document.getElementById('questionArea').style.display = 'block';
+            document.getElementById('summaryArea').style.display = 'none';
+            showNextQuestionLogic();
+        }
+        
+        function showNextQuestionLogic() {
+            document.getElementById('answerText').style.display = 'none';
+            document.getElementById('answerText').innerHTML = '';
+
+            let questionObj = null;
+
+            // Priority: Não Sabia > Novos > +/- > Sabia
+            if (highPriorityQuestions.length > 0) {
+                questionObj = highPriorityQuestions.shift();
+            } else if (selectedThemeQuestions.length > 0) {
+                questionObj = selectedThemeQuestions.shift();
+            } else if (mediumPriorityQuestions.length > 0) {
+                questionObj = mediumPriorityQuestions.shift();
+            } else if (knownQuestions.length > 0) {
+                // Only show known questions if all others are exhausted, and cycle through them
+                if (knownQuestions.length > 0 && selectedThemeQuestions.length === 0 && highPriorityQuestions.length === 0 && mediumPriorityQuestions.length === 0) {
+                     questionObj = knownQuestions.shift();
+                     // Re-add to the end to cycle through them
+                     knownQuestions.push(questionObj);
+                } else {
+                    questionObj = null; // No more questions to show
+                }
+            } else {
+                questionObj = null; // No more questions at all
+            }
+
+            if (questionObj) {
+                document.getElementById('questionText').innerText = questionObj.q;
+                document.getElementById('answerText').innerHTML = '<strong>Resposta:</strong> ' + questionObj.a;
+                // Store the current question being displayed to mark it later
+                document.getElementById('questionText').dataset.currentQuestionId = questionObj.id;
+            } else {
+                showSummary();
+            }
+            updateProgressBar();
+        }
+
+        function markAnswer(status) {
+            const currentQuestionId = parseInt(document.getElementById('questionText').dataset.currentQuestionId);
+            const questionObj = allQuestions.find(q => q.id === currentQuestionId);
+
+            if (!questionObj) return;
+
+            // Ensure the question is part of allReviewedQuestions and update counts
+            if (!allReviewedQuestions.find(q => q.id === questionObj.id)) {
+                allReviewedQuestions.push(questionObj);
+            }
+            
+            reviewCounts[questionObj.id][status]++;
+            reviewCounts[questionObj.id].total_reviews++;
+            if (!reviewCounts[questionObj.id].first_answered) {
+                reviewCounts[questionObj.id].first_answered = status;
+            }
+
+            // Remove from current queues
+            selectedThemeQuestions = selectedThemeQuestions.filter(q => q.id !== currentQuestionId);
+            highPriorityQuestions = highPriorityQuestions.filter(q => q.id !== currentQuestionId);
+            mediumPriorityQuestions = mediumPriorityQuestions.filter(q => q.id !== currentQuestionId);
+            knownQuestions = knownQuestions.filter(q => q.id !== currentQuestionId);
+
+            // Add to new queue based on status
+            if (status === 'sabia') {
+                knownQuestions.push(questionObj);
+            } else if (status === 'mais-ou-menos') {
+                mediumPriorityQuestions.push(questionObj);
+            } else if (status === 'nao-sabia') {
+                highPriorityQuestions.push(questionObj);
+            }
+            
+            showNextQuestionLogic();
+        }
+
+
+        function updateProgressBar() {
+            const totalInitialQuestions = questions[currentTheme].length;
+            const uniqueAnsweredQuestions = Object.keys(reviewCounts).filter(id => reviewCounts[id].total_reviews > 0).length;
+            
+            let progressPercentage = (uniqueAnsweredQuestions / totalInitialQuestions) * 100;
+            if (isNaN(progressPercentage)) progressPercentage = 0; // Avoid NaN if no questions
+            
+            document.getElementById('progressBar').style.width = progressPercentage + '%';
+        }
+
+        function showSummary() {
+            document.getElementById('questionArea').style.display = 'none';
+            document.getElementById('summaryArea').style.display = 'block';
+
+            let summaryHtml = "<h3>Desempenho por Tema:</h3>";
+            summaryHtml += "<ul>";
+            const themes = Object.keys(questions);
+            themes.forEach(themeKey => {
+                const themeName = themeKey === 'urinario' ? 'Aparelho Urinário' : 'Sistema Respiratório';
+                const themeQs = allQuestions.filter(q => q.theme === themeKey);
+                let correctCount = 0;
+                let incorrectCount = 0;
+                let partialCount = 0;
+
+                themeQs.forEach(q => {
+                    if (reviewCounts[q.id]) {
+                        if (reviewCounts[q.id].sabia > 0 && reviewCounts[q.id].nao_sabia === 0 && reviewCounts[q.id].mais_ou_menos === 0) {
+                            correctCount++;
+                        } else if (reviewCounts[q.id].nao_sabia > 0) {
+                            incorrectCount++;
+                        } else if (reviewCounts[q.id].mais_ou_menos > 0) {
+                            partialCount++;
+                        }
+                    }
+                });
+
+                summaryHtml += `<li><strong>${themeName}:</strong> ${correctCount} perguntas acertadas de ${themeQs.length}</li>`;
+            });
+            summaryHtml += "</ul>";
+
+            summaryHtml += "<h3>Perguntas para Estudar Mais:</h3>";
+            summaryHtml += "<table><thead><tr><th>Pergunta</th><th>Motivo</th><th>Resposta Correta</th></tr></thead><tbody>";
+
+            let questionsToReview = [];
+
+            // Add questions answered 'Não Sabia' with higher priority
+            Object.keys(reviewCounts).forEach(id => {
+                const qData = reviewCounts[id];
+                const originalQuestion = allQuestions.find(q => q.id === parseInt(id));
+                if (originalQuestion) {
+                    if (qData.nao_sabia > 0) {
+                        questionsToReview.push({ 
+                            q: originalQuestion.text.replace(/^\d+\.\s/, ''), 
+                            reason: `Errou ${qData.nao_sabia} vez(es)`, 
+                            ans: originalQuestion.ans,
+                            priority: qData.nao_sabia * 2 + qData.total_reviews // Higher 'nao_sabia' count = higher priority
+                        });
+                    } else if (qData.mais_ou_menos > 0 && qData.sabia === 0) { // If only +/- and not sabia
+                         questionsToReview.push({ 
+                            q: originalQuestion.text.replace(/^\d+\.\s/, ''), 
+                            reason: `Marcaram +/- ${qData.mais_ou_menos} vez(es)`, 
+                            ans: originalQuestion.ans,
+                            priority: qData.mais_ou_menos
+                        });
+                    }
+                }
+            });
+
+            // Sort by priority (more 'Não Sabia' or 'Não Sabia' first)
+            questionsToReview.sort((a, b) => b.priority - a.priority);
+
+            if (questionsToReview.length === 0) {
+                summaryHtml += "<tr><td colspan='3'>Parabéns! Parece que você dominou todas as perguntas neste tema!</td></tr>";
+            } else {
+                questionsToReview.forEach(item => {
+                    summaryHtml += `<tr><td>${item.q}</td><td>${item.reason}</td><td>${item.ans}</td></tr>`;
+                });
+            }
+            
+            summaryHtml += "</tbody></table>";
+            document.getElementById('summaryContent').innerHTML = summaryHtml;
+        }
+
+        function resetFlashcard() {
+            document.getElementById('themeSelection').style.display = 'block';
+            document.getElementById('questionArea').style.display = 'none';
+            document.getElementById('summaryArea').style.display = 'none';
+            document.getElementById('progressBar').style.width = '0%';
+            selectedThemeQuestions = [];
+            knownQuestions = [];
+            mediumPriorityQuestions = [];
+            highPriorityQuestions = [];
+            allReviewedQuestions = [];
+            reviewCounts = {};
+            currentTheme = '';
+        }
+    </script>
+</body>
+</html>
